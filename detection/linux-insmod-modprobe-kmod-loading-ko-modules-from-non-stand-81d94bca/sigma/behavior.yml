@@ -1,0 +1,56 @@
+title: Linux insmod/modprobe/kmod loading .ko modules from non-standard paths
+id: mesh-81d94bca
+status: experimental
+description: >-
+  Detects loading of Linux kernel modules (.ko files) via insmod, modprobe, or kmod from non-standard paths such as
+  /tmp, /dev/shm, /var/tmp, or user home directories. Legitimate kernel modules are typically loaded from /lib/modules/
+  or /usr/lib/modules/. Loading from attacker-writable paths is a strong indicator of rootkit deployment (Diamorphine,
+  Reptile, Kovid, etc.).
+author: threat-hunt-mesh
+date: '2026-05-26'
+references:
+  - https://www.elastic.co/security-labs/linux-rootkits-2-caught-in-the-act
+logsource:
+  product: linux
+  category: process_creation
+detection:
+  condition: selection and selection_suspicious_path and not selection_filter
+  selection:
+    Image|endswith:
+      - /insmod
+      - /modprobe
+      - /kmod
+    CommandLine|contains|all:
+      - .ko
+  selection_suspicious_path:
+    CommandLine|contains:
+      - /tmp/
+      - /dev/shm/
+      - /var/tmp/
+      - /home/
+      - /root/
+  selection_filter:
+    CommandLine|contains:
+      - /lib/modules/
+      - /usr/lib/modules/
+falsepositives:
+  - >-
+    Hardware driver installation workflows (NVIDIA proprietary drivers, VirtualBox Guest Additions, VMware Tools) that
+    stage .ko files in /tmp during the installation process before moving them to /lib/modules/ — verify with package
+    manager logs (dpkg, rpm, yum) and check if the module is subsequently installed to the standard path within 5
+    minutes
+  - >-
+    Kernel development and testing environments where developers compile and load custom modules from their home
+    directories or /tmp for debugging — correlate with known developer user accounts and workstation hostnames
+  - >-
+    Security research or authorized penetration testing activity using rootkit proof-of-concepts (Diamorphine, Reptile,
+    Kovid) — verify with red team engagement schedules and authorized tester accounts
+  - >-
+    Automated system recovery or disaster recovery tools that load custom kernel modules from backup staging directories
+    during bare-metal restore operations — correlate with documented DR runbooks and service accounts
+level: info
+tags:
+  - attack.persistence
+  - attack.privilege-escalation
+  - attack.defense-evasion
+  - attack.t1547.006
