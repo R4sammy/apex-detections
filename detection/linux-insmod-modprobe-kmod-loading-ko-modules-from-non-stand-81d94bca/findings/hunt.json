@@ -1,0 +1,279 @@
+{
+  "hunt_id": "81d94bca-dc2d-4b3f-8b38-b421ade73e69",
+  "hypothesis": "Linux insmod/modprobe/kmod loading .ko modules from non-standard paths",
+  "queries_executed": [
+    {
+      "name": "es_query",
+      "args": {
+        "index": "*",
+        "query": {
+          "bool": {
+            "must": [
+              {
+                "bool": {
+                  "should": [
+                    {
+                      "term": {
+                        "process.name": "insmod"
+                      }
+                    },
+                    {
+                      "term": {
+                        "process.name": "modprobe"
+                      }
+                    },
+                    {
+                      "term": {
+                        "process.name": "kmod"
+                      }
+                    }
+                  ],
+                  "minimum_should_match": 1
+                }
+              },
+              {
+                "wildcard": {
+                  "process.command_line": "*.ko*"
+                }
+              },
+              {
+                "bool": {
+                  "should": [
+                    {
+                      "wildcard": {
+                        "process.command_line": "*/tmp/*"
+                      }
+                    },
+                    {
+                      "wildcard": {
+                        "process.command_line": "*/dev/shm/*"
+                      }
+                    },
+                    {
+                      "wildcard": {
+                        "process.command_line": "*/var/tmp/*"
+                      }
+                    },
+                    {
+                      "wildcard": {
+                        "process.command_line": "*/home/*"
+                      }
+                    },
+                    {
+                      "wildcard": {
+                        "process.command_line": "*/root/*"
+                      }
+                    }
+                  ],
+                  "minimum_should_match": 1
+                }
+              },
+              {
+                "range": {
+                  "@timestamp": {
+                    "gte": "now-90d"
+                  }
+                }
+              }
+            ],
+            "must_not": [
+              {
+                "wildcard": {
+                  "process.command_line": "*/lib/modules/*"
+                }
+              },
+              {
+                "wildcard": {
+                  "process.command_line": "*/usr/lib/modules/*"
+                }
+              }
+            ]
+          }
+        },
+        "size": 50,
+        "sort": [
+          {
+            "@timestamp": "desc"
+          }
+        ]
+      }
+    },
+    {
+      "name": "es_query",
+      "args": {
+        "index": "*",
+        "query": {
+          "bool": {
+            "must": [
+              {
+                "bool": {
+                  "minimum_should_match": 1,
+                  "should": [
+                    {
+                      "wildcard": {
+                        "process.executable": "*insmod"
+                      }
+                    },
+                    {
+                      "wildcard": {
+                        "process.executable": "*modprobe"
+                      }
+                    },
+                    {
+                      "wildcard": {
+                        "process.executable": "*kmod"
+                      }
+                    },
+                    {
+                      "term": {
+                        "process.name": "insmod"
+                      }
+                    },
+                    {
+                      "term": {
+                        "process.name": "modprobe"
+                      }
+                    },
+                    {
+                      "term": {
+                        "process.name": "kmod"
+                      }
+                    },
+                    {
+                      "wildcard": {
+                        "exe": "*insmod"
+                      }
+                    },
+                    {
+                      "wildcard": {
+                        "exe": "*modprobe"
+                      }
+                    },
+                    {
+                      "wildcard": {
+                        "exe": "*kmod"
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "wildcard": {
+                  "process.args": "*.ko*"
+                }
+              },
+              {
+                "bool": {
+                  "minimum_should_match": 1,
+                  "should": [
+                    {
+                      "wildcard": {
+                        "process.args": "*/tmp/*"
+                      }
+                    },
+                    {
+                      "wildcard": {
+                        "process.args": "*/dev/shm/*"
+                      }
+                    },
+                    {
+                      "wildcard": {
+                        "process.args": "*/var/tmp/*"
+                      }
+                    },
+                    {
+                      "wildcard": {
+                        "process.args": "*/home/*"
+                      }
+                    },
+                    {
+                      "wildcard": {
+                        "process.args": "*/root/*"
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "range": {
+                  "@timestamp": {
+                    "gte": "now-90d"
+                  }
+                }
+              }
+            ],
+            "must_not": [
+              {
+                "wildcard": {
+                  "process.args": "*/lib/modules/*"
+                }
+              },
+              {
+                "wildcard": {
+                  "process.args": "*/usr/lib/modules/*"
+                }
+              }
+            ]
+          }
+        },
+        "size": 50,
+        "sort": [
+          {
+            "@timestamp": "desc"
+          }
+        ]
+      }
+    },
+    {
+      "name": "es_aggregation",
+      "args": {
+        "index": "*",
+        "group_by": [
+          "process.name"
+        ],
+        "agg_type": "top",
+        "query": {
+          "bool": {
+            "must": [
+              {
+                "wildcard": {
+                  "process.command_line": "*.ko*"
+                }
+              },
+              {
+                "range": {
+                  "@timestamp": {
+                    "gte": "now-90d"
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "size": 20,
+        "time_range_days": 90
+      }
+    },
+    {
+      "name": "es_aggregation",
+      "args": {
+        "agg_type": "top",
+        "group_by": [
+          "event.action"
+        ],
+        "index": "*",
+        "query": {
+          "match_all": {}
+        },
+        "size": 30,
+        "time_range_days": 90
+      }
+    }
+  ],
+  "results_summary": "Stalled — 3 consecutive iterations produced no new evidence and no new error retries.",
+  "pivots": [],
+  "affected_assets": [],
+  "finding_class": "INCONCLUSIVE",
+  "severity": "INFO",
+  "confidence": 0.8
+}
