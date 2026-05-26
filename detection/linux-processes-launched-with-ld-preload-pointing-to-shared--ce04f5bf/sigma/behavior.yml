@@ -1,0 +1,61 @@
+title: Linux processes launched with LD_PRELOAD pointing to shared objects in ephemeral
+id: mesh-ce04f5bf
+status: experimental
+description: >-
+  Detects Linux processes launched with the LD_PRELOAD environment variable pointing to shared objects in ephemeral
+  paths (/tmp, /dev/shm) or non-standard library directories. This is a common userland rootkit technique used by
+  families like Azazel, Symbiote, and Bedevil to hijack function calls without requiring root privileges. Note: This
+  rule requires process creation telemetry that captures environment variables — many default Linux logging
+  configurations do not capture this field.
+author: threat-hunt-mesh
+date: '2026-05-26'
+references:
+  - https://www.elastic.co/security-labs/linux-rootkits-2-caught-in-the-act
+logsource:
+  product: linux
+  category: process_creation
+detection:
+  condition: >-
+    selection_ld_preload and selection_suspicious_paths and selection_so_extension and not selection_filter_devtools and
+    not selection_filter_parent_devtools
+  selection_ld_preload:
+    CommandLine|contains: LD_PRELOAD=
+  selection_suspicious_paths:
+    CommandLine|contains:
+      - /tmp/
+      - /dev/shm/
+      - /usr/local/lib/
+      - /.
+  selection_so_extension:
+    CommandLine|contains: .so
+  selection_filter_devtools:
+    Image|endswith:
+      - /gdb
+      - /valgrind
+      - /strace
+      - /ltrace
+  selection_filter_parent_devtools:
+    ParentImage|endswith:
+      - /gdb
+      - /valgrind
+      - /strace
+      - /ltrace
+falsepositives:
+  - >-
+    Software developers testing custom memory allocators, profilers, or sanitizers in development environments — verify
+    user is member of 'developers' or 'engineering' group and suppress by user context
+  - >-
+    Third-party application installers (e.g., Oracle, IBM middleware) that use LD_PRELOAD for compatibility shims during
+    installation — these should be time-bounded to the installation window and launched by package managers
+  - >-
+    Host-based intrusion detection systems (HIDS) or endpoint security agents that use LD_PRELOAD for syscall
+    interception — verify the shared object is signed by the vendor and located in /opt/<vendor>/lib/
+  - >-
+    Continuous integration (CI) build agents running instrumented test suites with code coverage tools — suppress by
+    hostname pattern matching CI infrastructure
+level: info
+tags:
+  - attack.persistence
+  - attack.privilege-escalation
+  - attack.defense-evasion
+  - attack.t1574.006
