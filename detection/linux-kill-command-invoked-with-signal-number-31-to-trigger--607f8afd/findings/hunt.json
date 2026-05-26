@@ -1,0 +1,202 @@
+{
+  "hunt_id": "607f8afd-0747-4a14-965f-88cf3a28e6cf",
+  "hypothesis": "Linux kill command invoked with signal number >31 to trigger rootkit covert control channel",
+  "queries_executed": [
+    {
+      "name": "es_query",
+      "args": {
+        "index": "*",
+        "query": {
+          "bool": {
+            "must": [
+              {
+                "bool": {
+                  "should": [
+                    {
+                      "wildcard": {
+                        "process.command_line": "*kill -3[2-9]*"
+                      }
+                    },
+                    {
+                      "wildcard": {
+                        "process.command_line": "*kill -[4-9][0-9]*"
+                      }
+                    },
+                    {
+                      "wildcard": {
+                        "process.command_line": "*kill -[1-9][0-9][0-9]*"
+                      }
+                    },
+                    {
+                      "regexp": {
+                        "process.command_line": ".*kill\\s+-s\\s*([3-9][2-9]|[4-9][0-9]|[1-9][0-9]{2,}).*"
+                      }
+                    }
+                  ],
+                  "minimum_should_match": 1
+                }
+              },
+              {
+                "range": {
+                  "@timestamp": {
+                    "gte": "now-90d"
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "size": 50,
+        "sort": [
+          {
+            "@timestamp": "desc"
+          }
+        ]
+      }
+    },
+    {
+      "name": "es_query",
+      "args": {
+        "index": "*audit*",
+        "query": {
+          "bool": {
+            "must": [
+              {
+                "bool": {
+                  "should": [
+                    {
+                      "term": {
+                        "auditd.data.syscall": "kill"
+                      }
+                    },
+                    {
+                      "term": {
+                        "event.action": "syscall"
+                      }
+                    }
+                  ],
+                  "minimum_should_match": 1
+                }
+              },
+              {
+                "bool": {
+                  "should": [
+                    {
+                      "wildcard": {
+                        "auditd.data.a1": "*"
+                      }
+                    },
+                    {
+                      "exists": {
+                        "field": "process.args"
+                      }
+                    }
+                  ],
+                  "minimum_should_match": 1
+                }
+              },
+              {
+                "range": {
+                  "@timestamp": {
+                    "gte": "now-90d"
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "size": 50,
+        "sort": [
+          {
+            "@timestamp": "desc"
+          }
+        ]
+      }
+    },
+    {
+      "name": "es_query",
+      "args": {
+        "index": "*",
+        "query": {
+          "bool": {
+            "must": [
+              {
+                "bool": {
+                  "minimum_should_match": 1,
+                  "should": [
+                    {
+                      "wildcard": {
+                        "process.command_line": "*kill*"
+                      }
+                    },
+                    {
+                      "wildcard": {
+                        "CommandLine": "*kill*"
+                      }
+                    },
+                    {
+                      "wildcard": {
+                        "command": "*kill*"
+                      }
+                    },
+                    {
+                      "wildcard": {
+                        "process.args": "*kill*"
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "range": {
+                  "@timestamp": {
+                    "gte": "now-90d"
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "size": 20,
+        "sort": [
+          {
+            "@timestamp": "desc"
+          }
+        ]
+      }
+    },
+    {
+      "name": "es_aggregation",
+      "args": {
+        "index": "*",
+        "group_by": [
+          "event.action"
+        ],
+        "agg_type": "top",
+        "time_range_days": 90,
+        "size": 50
+      }
+    },
+    {
+      "name": "es_query",
+      "args": {
+        "index": "*",
+        "query": {
+          "match_all": {}
+        },
+        "size": 5,
+        "sort": [
+          {
+            "@timestamp": "desc"
+          }
+        ]
+      }
+    }
+  ],
+  "results_summary": "Stalled — 3 consecutive iterations produced no new evidence and no new error retries.",
+  "pivots": [],
+  "affected_assets": [],
+  "finding_class": "INCONCLUSIVE",
+  "severity": "INFO",
+  "confidence": 0.85
+}

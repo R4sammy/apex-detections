@@ -1,0 +1,49 @@
+title: Linux kill command invoked with signal number >31 to trigger rootkit covert cont
+id: mesh-607f8afd
+status: experimental
+description: >-
+  Detects invocations of the Linux kill command with signal numbers greater than 31, which may indicate rootkit covert
+  control channel activation. Rootkits like Diamorphine use high-numbered signals (e.g., kill -64) as triggers for
+  privilege escalation, process hiding, or module unloading. Note: This rule intentionally excludes POSIX real-time
+  signals (SIGRTMIN-SIGRTMAX, typically 34-64) when invoked via standard signal names, but will fire on numeric signal
+  arguments in the non-standard range.
+author: threat-hunt-mesh
+date: '2026-05-26'
+references:
+  - https://www.elastic.co/security-labs/linux-rootkits-2-caught-in-the-act
+logsource:
+  product: linux
+  category: process_creation
+detection:
+  condition: (selection_kill_numeric or selection_kill_symbolic) and not filter_legitimate_rt
+  selection_kill_numeric:
+    Image|endswith: /kill
+    CommandLine|re: kill\s+-[3-9][2-9]|kill\s+-[4-9][0-9]|kill\s+-[1-9][0-9]{2,}
+  selection_kill_symbolic:
+    Image|endswith: /kill
+    CommandLine|contains: '-s'
+    CommandLine|re: '-s\s*([3-9][2-9]|[4-9][0-9]|[1-9][0-9]{2,})'
+  filter_legitimate_rt:
+    CommandLine|contains:
+      - SIGRTMIN
+      - SIGRTMAX
+falsepositives:
+  - >-
+    Custom inter-process communication frameworks in legacy enterprise applications that use high-numbered signals
+    (32-63) for internal signaling — verify with application documentation and suppress by parent process or user
+    context if confirmed legitimate
+  - >-
+    POSIX real-time signals (SIGRTMIN to SIGRTMAX, typically 34-64 on Linux) invoked via numeric argument rather than
+    symbolic name by legitimate applications for asynchronous event notification — these should be rare via direct kill
+    command usage
+  - >-
+    Red-team or penetration testing exercises explicitly testing rootkit detection capabilities — correlate with
+    authorized testing windows and suppress by source host or user
+  - >-
+    Experimental or misconfigured system administration scripts that use non-standard signal numbers without malicious
+    intent — review script provenance and suppress by script path if verified safe
+level: info
+tags:
+  - attack.defense-evasion
+  - attack.persistence
+  - attack.t1055
