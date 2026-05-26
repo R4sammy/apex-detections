@@ -1,0 +1,266 @@
+{
+  "hunt_id": "ce04f5bf-da9e-48af-bb69-1e82960eae9d",
+  "hypothesis": "Linux processes launched with LD_PRELOAD pointing to shared objects in ephemeral paths (/tmp, /dev/shm) or non-standard library directories",
+  "queries_executed": [
+    {
+      "name": "es_query",
+      "args": {
+        "index": "*",
+        "query": {
+          "bool": {
+            "must": [
+              {
+                "bool": {
+                  "should": [
+                    {
+                      "term": {
+                        "event.category": "process"
+                      }
+                    },
+                    {
+                      "term": {
+                        "event.type": "process_start"
+                      }
+                    },
+                    {
+                      "term": {
+                        "event.action": "process_start"
+                      }
+                    },
+                    {
+                      "term": {
+                        "event.code": "1"
+                      }
+                    }
+                  ],
+                  "minimum_should_match": 1
+                }
+              },
+              {
+                "bool": {
+                  "should": [
+                    {
+                      "wildcard": {
+                        "process.env_vars": "*LD_PRELOAD=*"
+                      }
+                    },
+                    {
+                      "wildcard": {
+                        "process.command_line": "*LD_PRELOAD=*"
+                      }
+                    },
+                    {
+                      "wildcard": {
+                        "process.env.LD_PRELOAD": "*"
+                      }
+                    }
+                  ],
+                  "minimum_should_match": 1
+                }
+              },
+              {
+                "bool": {
+                  "should": [
+                    {
+                      "wildcard": {
+                        "process.env_vars": "*/tmp/*.so*"
+                      }
+                    },
+                    {
+                      "wildcard": {
+                        "process.env_vars": "*/dev/shm/*.so*"
+                      }
+                    },
+                    {
+                      "wildcard": {
+                        "process.env_vars": "*/usr/local/lib/*.so*"
+                      }
+                    },
+                    {
+                      "wildcard": {
+                        "process.env_vars": "*/.*.so*"
+                      }
+                    },
+                    {
+                      "wildcard": {
+                        "process.command_line": "*/tmp/*.so*"
+                      }
+                    },
+                    {
+                      "wildcard": {
+                        "process.command_line": "*/dev/shm/*.so*"
+                      }
+                    },
+                    {
+                      "wildcard": {
+                        "process.command_line": "*/usr/local/lib/*.so*"
+                      }
+                    },
+                    {
+                      "wildcard": {
+                        "process.env.LD_PRELOAD": "*/tmp/*"
+                      }
+                    },
+                    {
+                      "wildcard": {
+                        "process.env.LD_PRELOAD": "*/dev/shm/*"
+                      }
+                    },
+                    {
+                      "wildcard": {
+                        "process.env.LD_PRELOAD": "*/usr/local/*"
+                      }
+                    }
+                  ],
+                  "minimum_should_match": 1
+                }
+              },
+              {
+                "range": {
+                  "@timestamp": {
+                    "gte": "now-90d"
+                  }
+                }
+              }
+            ],
+            "must_not": [
+              {
+                "term": {
+                  "process.parent.name": "gdb"
+                }
+              },
+              {
+                "term": {
+                  "process.parent.name": "valgrind"
+                }
+              },
+              {
+                "term": {
+                  "process.parent.name": "strace"
+                }
+              },
+              {
+                "term": {
+                  "process.name": "gdb"
+                }
+              },
+              {
+                "term": {
+                  "process.name": "valgrind"
+                }
+              },
+              {
+                "term": {
+                  "process.name": "strace"
+                }
+              }
+            ]
+          }
+        },
+        "size": 50,
+        "sort": [
+          {
+            "@timestamp": "desc"
+          }
+        ]
+      }
+    },
+    {
+      "name": "es_query",
+      "args": {
+        "index": "*",
+        "query": {
+          "bool": {
+            "must": [
+              {
+                "wildcard": {
+                  "message": "*LD_PRELOAD*"
+                }
+              },
+              {
+                "range": {
+                  "@timestamp": {
+                    "gte": "now-90d"
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "size": 50,
+        "sort": [
+          {
+            "@timestamp": "desc"
+          }
+        ]
+      }
+    },
+    {
+      "name": "es_query",
+      "args": {
+        "index": "*",
+        "query": {
+          "bool": {
+            "must": [
+              {
+                "query_string": {
+                  "query": "LD_PRELOAD",
+                  "default_field": "*"
+                }
+              },
+              {
+                "range": {
+                  "@timestamp": {
+                    "gte": "now-90d"
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "size": 50,
+        "sort": [
+          {
+            "@timestamp": "desc"
+          }
+        ]
+      }
+    },
+    {
+      "name": "es_query",
+      "args": {
+        "index": "*",
+        "query": {
+          "bool": {
+            "must": [
+              {
+                "wildcard": {
+                  "process.command_line": "*tmp*.so*"
+                }
+              },
+              {
+                "range": {
+                  "@timestamp": {
+                    "gte": "now-90d"
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "size": 50,
+        "sort": [
+          {
+            "@timestamp": "desc"
+          }
+        ]
+      }
+    }
+  ],
+  "results_summary": "Stalled — 3 consecutive iterations produced no new evidence and no new error retries.",
+  "pivots": [],
+  "affected_assets": [],
+  "finding_class": "INCONCLUSIVE",
+  "severity": "INFO",
+  "confidence": 0.88
+}
