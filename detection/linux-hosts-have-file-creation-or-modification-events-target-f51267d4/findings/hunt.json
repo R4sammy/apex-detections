@@ -1,0 +1,288 @@
+{
+  "hunt_id": "f51267d4-921d-4cd9-9855-ea4d7fc94be5",
+  "hypothesis": "Linux hosts have file creation or modification events targeting /etc/ld.so.preload or /etc/ld.so.conf.d/ by non-package-manager processes",
+  "queries_executed": [
+    {
+      "name": "es_query",
+      "args": {
+        "index": "*",
+        "query": {
+          "bool": {
+            "must": [
+              {
+                "bool": {
+                  "should": [
+                    {
+                      "term": {
+                        "event.action": "file_create"
+                      }
+                    },
+                    {
+                      "term": {
+                        "event.action": "file_modify"
+                      }
+                    },
+                    {
+                      "term": {
+                        "event.action": "creation"
+                      }
+                    },
+                    {
+                      "term": {
+                        "event.action": "modification"
+                      }
+                    },
+                    {
+                      "term": {
+                        "event.action": "renamed"
+                      }
+                    },
+                    {
+                      "term": {
+                        "event.action": "updated"
+                      }
+                    }
+                  ],
+                  "minimum_should_match": 1
+                }
+              },
+              {
+                "bool": {
+                  "should": [
+                    {
+                      "term": {
+                        "file.path": "/etc/ld.so.preload"
+                      }
+                    },
+                    {
+                      "term": {
+                        "file.path": "/etc/ld.so.conf"
+                      }
+                    },
+                    {
+                      "wildcard": {
+                        "file.path": "/etc/ld.so.conf.d/*"
+                      }
+                    },
+                    {
+                      "wildcard": {
+                        "file.path": "/etc/ld.so.preload*"
+                      }
+                    }
+                  ],
+                  "minimum_should_match": 1
+                }
+              },
+              {
+                "range": {
+                  "@timestamp": {
+                    "gte": "now-90d"
+                  }
+                }
+              }
+            ],
+            "must_not": [
+              {
+                "terms": {
+                  "process.name": [
+                    "apt",
+                    "apt-get",
+                    "yum",
+                    "dnf",
+                    "dpkg",
+                    "rpm",
+                    "systemd",
+                    "update-alternatives",
+                    "aptitude",
+                    "zypper",
+                    "pacman"
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        "size": 50,
+        "sort": [
+          {
+            "@timestamp": "desc"
+          }
+        ]
+      }
+    },
+    {
+      "name": "es_query",
+      "args": {
+        "index": "*",
+        "query": {
+          "bool": {
+            "must": [
+              {
+                "bool": {
+                  "minimum_should_match": 1,
+                  "should": [
+                    {
+                      "wildcard": {
+                        "file.path": "/etc/ld.so.preload*"
+                      }
+                    },
+                    {
+                      "wildcard": {
+                        "file.path": "/etc/ld.so.conf*"
+                      }
+                    },
+                    {
+                      "wildcard": {
+                        "file.path": "/etc/ld.so.conf.d/*"
+                      }
+                    },
+                    {
+                      "wildcard": {
+                        "file.target.path": "/etc/ld.so.preload*"
+                      }
+                    },
+                    {
+                      "wildcard": {
+                        "file.target.path": "/etc/ld.so.conf*"
+                      }
+                    },
+                    {
+                      "wildcard": {
+                        "file.target.path": "/etc/ld.so.conf.d/*"
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "range": {
+                  "@timestamp": {
+                    "gte": "now-90d"
+                  }
+                }
+              }
+            ],
+            "must_not": [
+              {
+                "terms": {
+                  "process.name": [
+                    "apt",
+                    "apt-get",
+                    "yum",
+                    "dnf",
+                    "dpkg",
+                    "rpm",
+                    "systemd",
+                    "update-alternatives",
+                    "aptitude",
+                    "zypper",
+                    "pacman"
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        "size": 50,
+        "sort": [
+          {
+            "@timestamp": "desc"
+          }
+        ]
+      }
+    },
+    {
+      "name": "es_aggregation",
+      "args": {
+        "index": "*",
+        "group_by": [
+          "file.path"
+        ],
+        "agg_type": "top",
+        "query": {
+          "bool": {
+            "must": [
+              {
+                "bool": {
+                  "minimum_should_match": 1,
+                  "should": [
+                    {
+                      "wildcard": {
+                        "file.path": "/etc/ld*"
+                      }
+                    },
+                    {
+                      "wildcard": {
+                        "file.target.path": "/etc/ld*"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        "time_range_days": 90,
+        "size": 30
+      }
+    },
+    {
+      "name": "es_query",
+      "args": {
+        "index": "*",
+        "query": {
+          "bool": {
+            "must": [
+              {
+                "bool": {
+                  "minimum_should_match": 1,
+                  "should": [
+                    {
+                      "match": {
+                        "message": "ld.so.preload"
+                      }
+                    },
+                    {
+                      "match": {
+                        "message": "ld.so.conf"
+                      }
+                    },
+                    {
+                      "match": {
+                        "event.original": "ld.so.preload"
+                      }
+                    },
+                    {
+                      "match": {
+                        "event.original": "ld.so.conf"
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "range": {
+                  "@timestamp": {
+                    "gte": "now-90d"
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "size": 50,
+        "sort": [
+          {
+            "@timestamp": "desc"
+          }
+        ]
+      }
+    }
+  ],
+  "results_summary": "Stalled — 3 consecutive iterations produced no new evidence and no new error retries.",
+  "pivots": [],
+  "affected_assets": [],
+  "finding_class": "INCONCLUSIVE",
+  "severity": "INFO",
+  "confidence": 0.78
+}
