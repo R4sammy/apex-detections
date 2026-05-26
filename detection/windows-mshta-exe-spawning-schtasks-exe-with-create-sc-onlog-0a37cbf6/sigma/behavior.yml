@@ -1,0 +1,46 @@
+title: 'Windows mshta.exe spawning schtasks.exe with /Create /SC ONLOGON flags and task '
+id: mesh-0a37cbf6
+status: experimental
+description: >-
+  Detects mshta.exe spawning schtasks.exe to create a scheduled task with ONLOGON trigger and action path in user
+  AppData\Roaming directory. This is a persistence pattern observed in HTA-delivered malware campaigns where the
+  scheduled task masquerades as a legitimate update service.
+author: threat-hunt-mesh
+date: '2026-05-26'
+references:
+  - https://www.elastic.co/security-labs/r4sammy-prod-validation-2026-05-26
+logsource:
+  product: windows
+  service: sysmon
+  category: process_creation
+detection:
+  condition: selection
+  selection:
+    ParentImage|endswith: \mshta.exe
+    Image|endswith: \schtasks.exe
+    CommandLine|contains|all:
+      - /Create
+      - /SC
+      - ONLOGON
+      - AppData\Roaming
+falsepositives:
+  - >-
+    Enterprise application deployment tools (SCCM, Microsoft Intune, Tanium) using mshta.exe wrappers to deploy
+    scheduled tasks during software rollouts — verify parent process chain includes known deployment agent executables
+    and task action path points to vendor-signed binaries under %ProgramFiles%
+  - >-
+    Legacy enterprise applications with installers that chain mshta.exe and schtasks.exe for legitimate scheduled task
+    creation — validate digital signature of the task action binary and cross-reference with approved software inventory
+  - >-
+    Red-team or authorized penetration testing exercises simulating HTA-based persistence — coordinate with security
+    operations center to suppress during documented test windows
+  - >-
+    Developer workstations running automation scripts for testing scheduled task creation workflows — scope detection to
+    production endpoints only or whitelist specific developer machine hostnames
+level: info
+tags:
+  - attack.persistence
+  - attack.defense-evasion
+  - attack.t1218.005
+  - attack.t1053.005
+  - attack.t1036.004
