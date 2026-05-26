@@ -1,0 +1,41 @@
+title: Linux shred command invoked with -u flag to securely delete files
+id: mesh-88d7279d
+status: experimental
+description: >-
+  Detects execution of the Linux 'shred' command with the '-u' or '--remove' flag, which securely overwrites and deletes
+  files to impede forensic analysis. This is a known rootkit defense evasion technique (T1070.004) used during
+  post-exploitation cleanup phases to destroy evidence of malicious activity.
+author: threat-hunt-mesh
+date: '2026-05-26'
+references:
+  - https://www.elastic.co/security-labs/linux-rootkits-2-caught-in-the-act
+logsource:
+  product: linux
+  category: process_creation
+detection:
+  condition: 1 of selection*
+  selection:
+    Image|endswith: /shred
+    CommandLine|contains:
+      - '-u'
+  selection_alt_flag:
+    Image|endswith: /shred
+    CommandLine|contains:
+      - '--remove'
+falsepositives:
+  - >-
+    Documented secure-delete compliance workflows for PII/PHI data destruction (GDPR, HIPAA) — verify with compliance
+    team and whitelist known secure-delete directories (e.g., /secure-delete/, /compliance-purge/)
+  - >-
+    System administrators manually cleaning up sensitive test files or failed deployment artifacts — correlate with
+    change management tickets and known admin accounts
+  - >-
+    Automated log rotation scripts that use shred for secure log destruction (e.g., custom logrotate configurations) —
+    validate against /etc/logrotate.d/ configurations and whitelist parent process /usr/sbin/logrotate
+  - >-
+    High-security build pipelines that shred intermediate cryptographic material or secrets after compilation — verify
+    with DevSecOps team and whitelist known CI/CD service accounts and build directories
+level: info
+tags:
+  - attack.defense-evasion
+  - attack.t1070.004
