@@ -1,0 +1,47 @@
+title: 'Windows mshta.exe spawning schtasks.exe with /Create /SC ONLOGON flags and task '
+id: mesh-f3eb6cf4
+status: experimental
+description: >-
+  Detects mshta.exe spawning schtasks.exe to create a scheduled task with /Create and /SC ONLOGON flags, where the task
+  action path points to a user's AppData directory. This is a documented LOLBin-based persistence technique (T1218.005 +
+  T1053.005) used to survive reboots after HTA-based initial access. The combination of mshta.exe parent + schtasks.exe
+  child + ONLOGON trigger + user-writable payload path is rarely legitimate.
+author: threat-hunt-mesh
+date: '2026-05-26'
+references:
+  - https://www.elastic.co/security-labs/r4sammy-fresh-image-2026-05-26
+logsource:
+  product: windows
+  service: sysmon
+  category: process_creation
+detection:
+  condition: selection and selection_appdata
+  selection:
+    ParentImage|endswith: \mshta.exe
+    Image|endswith: \schtasks.exe
+    CommandLine|contains|all:
+      - /Create
+      - /SC
+      - ONLOGON
+  selection_appdata:
+    CommandLine|contains: \AppData\Roaming\
+falsepositives:
+  - >-
+    Legacy enterprise software deployment tools that use HTA wrappers for multi-stage installations and create scheduled
+    tasks in user profiles (verify with IT operations and check for code-signing by the organization's certificate)
+  - >-
+    Internal IT automation scripts that invoke mshta.exe to deploy user-context scheduled tasks for legitimate admin
+    purposes (rare in modern environments; validate against documented automation inventory)
+  - >-
+    Red-team or penetration testing campaigns using this exact TTP (coordinate with security testing calendar and
+    suppress during documented exercise windows)
+  - >-
+    Malware analysis sandboxes or EDR self-test mechanisms that replay known attack patterns for baseline validation
+    (suppress by host or user context if identified)
+level: info
+tags:
+  - attack.persistence
+  - attack.defense-evasion
+  - attack.t1218.005
+  - attack.t1053.005
+  - attack.t1036.004
