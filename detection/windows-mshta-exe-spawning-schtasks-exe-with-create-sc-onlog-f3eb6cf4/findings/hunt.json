@@ -1,0 +1,313 @@
+{
+  "hunt_id": "f3eb6cf4-beb2-4677-b7ac-9b56faeb80c7",
+  "hypothesis": "Windows mshta.exe spawning schtasks.exe with /Create /SC ONLOGON flags and task payload path in user AppData directories",
+  "queries_executed": [
+    {
+      "name": "es_query",
+      "args": {
+        "index": "winlogbeat-*",
+        "query": {
+          "bool": {
+            "must": [
+              {
+                "term": {
+                  "event.code": "1"
+                }
+              },
+              {
+                "wildcard": {
+                  "process.parent.name": "*mshta.exe"
+                }
+              },
+              {
+                "wildcard": {
+                  "process.name": "*schtasks.exe"
+                }
+              },
+              {
+                "wildcard": {
+                  "process.command_line": "*/Create*"
+                }
+              },
+              {
+                "wildcard": {
+                  "process.command_line": "*/SC*ONLOGON*"
+                }
+              },
+              {
+                "wildcard": {
+                  "process.command_line": "*AppData\\Roaming*"
+                }
+              },
+              {
+                "range": {
+                  "@timestamp": {
+                    "gte": "now-30d"
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "size": 50,
+        "sort": [
+          {
+            "@timestamp": "desc"
+          }
+        ]
+      }
+    },
+    {
+      "name": "es_query",
+      "args": {
+        "index": "*beat-*",
+        "query": {
+          "bool": {
+            "must": [
+              {
+                "bool": {
+                  "should": [
+                    {
+                      "term": {
+                        "event.code": "1"
+                      }
+                    },
+                    {
+                      "term": {
+                        "event_id": 1
+                      }
+                    },
+                    {
+                      "term": {
+                        "winlog.event_id": 1
+                      }
+                    }
+                  ],
+                  "minimum_should_match": 1
+                }
+              },
+              {
+                "bool": {
+                  "should": [
+                    {
+                      "wildcard": {
+                        "process.parent.executable": "*mshta.exe"
+                      }
+                    },
+                    {
+                      "wildcard": {
+                        "ParentImage": "*mshta.exe"
+                      }
+                    },
+                    {
+                      "wildcard": {
+                        "winlog.event_data.ParentImage": "*mshta.exe"
+                      }
+                    }
+                  ],
+                  "minimum_should_match": 1
+                }
+              },
+              {
+                "bool": {
+                  "should": [
+                    {
+                      "wildcard": {
+                        "process.executable": "*schtasks.exe"
+                      }
+                    },
+                    {
+                      "wildcard": {
+                        "Image": "*schtasks.exe"
+                      }
+                    },
+                    {
+                      "wildcard": {
+                        "winlog.event_data.Image": "*schtasks.exe"
+                      }
+                    }
+                  ],
+                  "minimum_should_match": 1
+                }
+              },
+              {
+                "bool": {
+                  "should": [
+                    {
+                      "wildcard": {
+                        "process.command_line": "*/Create*"
+                      }
+                    },
+                    {
+                      "wildcard": {
+                        "CommandLine": "*/Create*"
+                      }
+                    },
+                    {
+                      "wildcard": {
+                        "winlog.event_data.CommandLine": "*/Create*"
+                      }
+                    }
+                  ],
+                  "minimum_should_match": 1
+                }
+              },
+              {
+                "range": {
+                  "@timestamp": {
+                    "gte": "now-30d"
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "size": 50,
+        "sort": [
+          {
+            "@timestamp": "desc"
+          }
+        ]
+      }
+    },
+    {
+      "name": "es_query",
+      "args": {
+        "index": "*",
+        "query": {
+          "bool": {
+            "must": [
+              {
+                "bool": {
+                  "minimum_should_match": 1,
+                  "should": [
+                    {
+                      "wildcard": {
+                        "process.parent.name": "*mshta*"
+                      }
+                    },
+                    {
+                      "wildcard": {
+                        "process.parent.executable": "*mshta*"
+                      }
+                    },
+                    {
+                      "wildcard": {
+                        "ParentImage": "*mshta*"
+                      }
+                    },
+                    {
+                      "wildcard": {
+                        "winlog.event_data.ParentImage": "*mshta*"
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "bool": {
+                  "minimum_should_match": 1,
+                  "should": [
+                    {
+                      "wildcard": {
+                        "process.name": "*schtasks*"
+                      }
+                    },
+                    {
+                      "wildcard": {
+                        "process.executable": "*schtasks*"
+                      }
+                    },
+                    {
+                      "wildcard": {
+                        "Image": "*schtasks*"
+                      }
+                    },
+                    {
+                      "wildcard": {
+                        "winlog.event_data.Image": "*schtasks*"
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "range": {
+                  "@timestamp": {
+                    "gte": "now-30d"
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "size": 50,
+        "sort": [
+          {
+            "@timestamp": "desc"
+          }
+        ]
+      }
+    },
+    {
+      "name": "es_query",
+      "args": {
+        "index": "*",
+        "query": {
+          "bool": {
+            "must": [
+              {
+                "bool": {
+                  "minimum_should_match": 1,
+                  "should": [
+                    {
+                      "wildcard": {
+                        "process.name": "*mshta*"
+                      }
+                    },
+                    {
+                      "wildcard": {
+                        "process.executable": "*mshta*"
+                      }
+                    },
+                    {
+                      "wildcard": {
+                        "Image": "*mshta*"
+                      }
+                    },
+                    {
+                      "wildcard": {
+                        "winlog.event_data.Image": "*mshta*"
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "range": {
+                  "@timestamp": {
+                    "gte": "now-30d"
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "size": 20,
+        "sort": [
+          {
+            "@timestamp": "desc"
+          }
+        ]
+      }
+    }
+  ],
+  "results_summary": "Stalled — 3 consecutive iterations produced no new evidence and no new error retries.",
+  "pivots": [
+    "Stalled — 3 consecutive iterations produced no new evidence and no new error retries."
+  ],
+  "affected_assets": [],
+  "finding_class": "INCONCLUSIVE",
+  "severity": "INFO",
+  "confidence": 0.75
+}
