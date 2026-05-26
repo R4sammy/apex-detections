@@ -1,0 +1,59 @@
+title: Linux hosts have file creation or modification events targeting /etc/ld.so.prelo
+id: mesh-f51267d4
+status: experimental
+description: >-
+  Detects file creation or modification events targeting Linux dynamic linker configuration files (/etc/ld.so.preload,
+  /etc/ld.so.conf, /etc/ld.so.conf.d/*) by processes other than known package managers. This technique achieves
+  system-wide persistent library hijacking and is used by documented Linux rootkits (Azazel, Symbiote, Bedevil).
+author: threat-hunt-mesh
+date: '2026-05-26'
+references:
+  - https://www.elastic.co/security-labs/linux-rootkits-2-caught-in-the-act
+logsource:
+  product: linux
+  category: file_event
+detection:
+  condition: (selection or selection_confdir) and not selection_filter
+  selection:
+    TargetFilename|startswith:
+      - /etc/ld.so.preload
+      - /etc/ld.so.conf
+  selection_confdir:
+    TargetFilename|startswith: /etc/ld.so.conf.d/
+  selection_filter:
+    Image|endswith:
+      - /apt
+      - /apt-get
+      - /yum
+      - /dnf
+      - /dpkg
+      - /rpm
+      - /systemd
+      - /update-alternatives
+      - /aptitude
+      - /zypper
+      - /pacman
+falsepositives:
+  - >-
+    Legitimate system package updates or installations via distribution package managers (apt, yum, dnf, zypper, pacman)
+    — these are explicitly filtered but may use wrapper scripts not in the exclusion list
+  - >-
+    IT automation frameworks (Ansible, Puppet, Chef, SaltStack) deploying approved library path configurations for
+    enterprise applications — verify deployment is part of documented change control
+  - >-
+    Manual configuration by system administrators adding legitimate third-party library paths for approved software
+    (e.g., Oracle database instant client, CUDA libraries) — correlate with change tickets and verify the referenced
+    shared object is signed and from a trusted vendor
+  - >-
+    Container runtime initialization (Docker, Podman, containerd) or virtualization platform scripts configuring dynamic
+    linking for containerized workloads — these typically run as systemd units or container runtime processes, verify
+    parent process context
+  - >-
+    Security scanning or compliance tools (Lynis, OpenSCAP, Tripwire) that create temporary test files in these paths
+    during audits — these should be short-lived and correlate with scheduled scan windows
+level: info
+tags:
+  - attack.persistence
+  - attack.privilege-escalation
+  - attack.defense-evasion
+  - attack.t1574.006
