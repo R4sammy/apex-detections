@@ -1,0 +1,281 @@
+{
+  "hunt_id": "88d7279d-258d-4b90-bb5b-1a37b352809a",
+  "hypothesis": "Linux shred command invoked with -u flag to securely delete files",
+  "queries_executed": [
+    {
+      "name": "es_query",
+      "args": {
+        "index": "*",
+        "query": {
+          "bool": {
+            "must": [
+              {
+                "bool": {
+                  "should": [
+                    {
+                      "wildcard": {
+                        "process.name": "*shred*"
+                      }
+                    },
+                    {
+                      "wildcard": {
+                        "process.executable": "*shred*"
+                      }
+                    },
+                    {
+                      "term": {
+                        "process.name": "shred"
+                      }
+                    }
+                  ],
+                  "minimum_should_match": 1
+                }
+              },
+              {
+                "bool": {
+                  "should": [
+                    {
+                      "wildcard": {
+                        "process.command_line": "*-u*"
+                      }
+                    },
+                    {
+                      "wildcard": {
+                        "process.command_line": "*--remove*"
+                      }
+                    }
+                  ],
+                  "minimum_should_match": 1
+                }
+              },
+              {
+                "range": {
+                  "@timestamp": {
+                    "gte": "now-90d"
+                  }
+                }
+              }
+            ],
+            "should": [
+              {
+                "wildcard": {
+                  "process.command_line": "*/tmp/*"
+                }
+              },
+              {
+                "wildcard": {
+                  "process.command_line": "*/dev/shm/*"
+                }
+              },
+              {
+                "wildcard": {
+                  "process.command_line": "*/etc/*"
+                }
+              },
+              {
+                "wildcard": {
+                  "process.command_line": "*/var/log/*"
+                }
+              },
+              {
+                "wildcard": {
+                  "process.command_line": "*/.bashrc*"
+                }
+              },
+              {
+                "wildcard": {
+                  "process.command_line": "*/etc/profile*"
+                }
+              },
+              {
+                "wildcard": {
+                  "process.command_line": "*.so*"
+                }
+              },
+              {
+                "wildcard": {
+                  "process.command_line": "*.ko*"
+                }
+              },
+              {
+                "wildcard": {
+                  "process.command_line": "*.rules*"
+                }
+              }
+            ],
+            "minimum_should_match": 0
+          }
+        },
+        "size": 50,
+        "sort": [
+          {
+            "@timestamp": "desc"
+          }
+        ]
+      }
+    },
+    {
+      "name": "es_query",
+      "args": {
+        "index": "auditbeat-*,filebeat-*,logs-*",
+        "query": {
+          "bool": {
+            "must": [
+              {
+                "bool": {
+                  "should": [
+                    {
+                      "match_phrase": {
+                        "process.name": "shred"
+                      }
+                    },
+                    {
+                      "match_phrase": {
+                        "process.executable": "shred"
+                      }
+                    },
+                    {
+                      "wildcard": {
+                        "process.executable": "*/shred"
+                      }
+                    },
+                    {
+                      "match_phrase": {
+                        "auditd.data.exe": "shred"
+                      }
+                    },
+                    {
+                      "wildcard": {
+                        "auditd.data.exe": "*/shred"
+                      }
+                    }
+                  ],
+                  "minimum_should_match": 1
+                }
+              },
+              {
+                "bool": {
+                  "should": [
+                    {
+                      "wildcard": {
+                        "process.args": "*-u*"
+                      }
+                    },
+                    {
+                      "wildcard": {
+                        "process.args": "*--remove*"
+                      }
+                    },
+                    {
+                      "wildcard": {
+                        "auditd.data.a0": "*-u*"
+                      }
+                    },
+                    {
+                      "wildcard": {
+                        "auditd.data.a1": "*-u*"
+                      }
+                    },
+                    {
+                      "wildcard": {
+                        "auditd.data.a2": "*-u*"
+                      }
+                    },
+                    {
+                      "wildcard": {
+                        "auditd.data.a0": "*--remove*"
+                      }
+                    },
+                    {
+                      "wildcard": {
+                        "auditd.data.a1": "*--remove*"
+                      }
+                    },
+                    {
+                      "wildcard": {
+                        "auditd.data.a2": "*--remove*"
+                      }
+                    }
+                  ],
+                  "minimum_should_match": 1
+                }
+              },
+              {
+                "range": {
+                  "@timestamp": {
+                    "gte": "now-90d"
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "size": 50,
+        "sort": [
+          {
+            "@timestamp": "desc"
+          }
+        ]
+      }
+    },
+    {
+      "name": "es_query",
+      "args": {
+        "index": "*",
+        "query": {
+          "bool": {
+            "must": [
+              {
+                "query_string": {
+                  "query": "shred AND (-u OR --remove)",
+                  "fields": [
+                    "process.command_line",
+                    "process.args",
+                    "message",
+                    "auditd.data.*"
+                  ]
+                }
+              },
+              {
+                "range": {
+                  "@timestamp": {
+                    "gte": "now-90d"
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "size": 50,
+        "sort": [
+          {
+            "@timestamp": "desc"
+          }
+        ]
+      }
+    },
+    {
+      "name": "es_aggregation",
+      "args": {
+        "index": "*",
+        "group_by": [
+          "process.name"
+        ],
+        "agg_type": "top",
+        "query": {
+          "wildcard": {
+            "process.name": "*shred*"
+          }
+        },
+        "time_range_days": 90,
+        "size": 20
+      }
+    }
+  ],
+  "results_summary": "Stalled — 3 consecutive iterations produced no new evidence and no new error retries.",
+  "pivots": [],
+  "affected_assets": [],
+  "finding_class": "INCONCLUSIVE",
+  "severity": "INFO",
+  "confidence": 0.78
+}
